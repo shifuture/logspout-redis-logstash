@@ -150,10 +150,8 @@ func (a *RedisAdapter) Stream(logstream chan *router.Message) {
 
 	mute := false
 
-	for m := range logstream {
-		a.msg_counter += 1
-		msg_id := fmt.Sprintf("%s#%d", m.Container.ID[0:12], a.msg_counter)
-
+	var dataBuffer router.Message
+	var sendData = func(m router.Message) {
 		js, err := createLogstashMessage(m, a.docker_host, a.use_v0, a.logstash_type, a.dedot_labels)
 		if err != nil {
 			if a.mute_errors {
@@ -202,7 +200,41 @@ func (a *RedisAdapter) Stream(logstream chan *router.Message) {
 				mute = false
 			}
 		}
+    }
+
+	multilineTag := false
+	for m := range logstream {
+		a.msg_counter += 1
+		msg_id := fmt.Sprintf("%s#%d", m.Container.ID[0:12], a.msg_counter)
+
+        if err := json.Unmarshal([]byte(m.Data)); err != nil {
+            if ok,_ := regexp.MatchString("^\\#\\#\\#\\#", m.Data); ok {
+                multilineTag = !multilineTag
+                continue
+            }
+            if multilineTag {
+                dataBuffer.Data = dataBuffer.Data + "\n" + m.Data
+                continue
+            }
+            if ok,_ := regexp.MatchString("^(\\t+|\\s{2,})", m.Data); ok {
+                // multi line
+                if _, e := dataBuffer.Data e {
+                    dataBuffer.Data = dataBuffer.Data + "\n" + m.Data
+                } else {
+                    dataBuffer = m
+                }
+                continue
+            } else {
+                // single line
+                sendData(dataBuffer)
+                dataBuffer = m
+            }
+		} else {
+            sendData(dataBuffer)
+            dataBuffer = make(router.Message)
+        }
 	}
+    sendData(dataBuffer)
 }
 
 func errorf(format string, a ...interface{}) (err error) {

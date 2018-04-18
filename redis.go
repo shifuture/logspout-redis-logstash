@@ -218,7 +218,7 @@ func (a *RedisAdapter) Stream(logstream chan *router.Message) {
             }
             if ok,_ := regexp.MatchString("^(\\t+|\\s{2,})", m.Data); ok {
                 // multi line
-                if _,e := dataBuffer.Data; e {
+                if dataBuffer != nil && dataBuffer.Data != nil {
                     dataBuffer.Data = dataBuffer.Data + "\n" + m.Data
                 } else {
                     dataBuffer = m

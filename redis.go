@@ -162,7 +162,7 @@ func (a *RedisAdapter) Stream(logstream chan *router.Message) {
 			} else {
 				log.Printf("redis[%s]: error on json.Marshal: %s\n", msg_id, err)
 			}
-			continue
+			return
 		}
 		_, err = conn.Do("RPUSH", a.key, js)
 		if err != nil {
@@ -192,8 +192,6 @@ func (a *RedisAdapter) Stream(logstream chan *router.Message) {
 				log.Printf("redis[%s]: successful retry rpush after error\n", msg_id)
 				mute = false
 			}
-
-			continue
 		} else {
 			if mute {
 				log.Printf("redis[%s]: successful rpush after error\n", msg_id)
@@ -218,7 +216,7 @@ func (a *RedisAdapter) Stream(logstream chan *router.Message) {
             }
             if ok,_ := regexp.MatchString("^(\\t+|\\s{2,})", m.Data); ok {
                 // multi line
-                if _, e := dataBuffer.Data e {
+                if _,e := dataBuffer.Data; e {
                     dataBuffer.Data = dataBuffer.Data + "\n" + m.Data
                 } else {
                     dataBuffer = m

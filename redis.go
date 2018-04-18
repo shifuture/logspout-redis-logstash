@@ -14,6 +14,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"regexp"
 	"time"
 
 	"github.com/garyburd/redigo/redis"
@@ -150,8 +151,9 @@ func (a *RedisAdapter) Stream(logstream chan *router.Message) {
 
 	mute := false
 
-	var dataBuffer router.Message
-	var sendData = func(m router.Message) {
+	var dataBuffer *router.Message
+	var sendData = func(m *router.Message) {
+		msg_id := fmt.Sprintf("%s#%d", m.Container.ID[0:12], a.msg_counter)
 		js, err := createLogstashMessage(m, a.docker_host, a.use_v0, a.logstash_type, a.dedot_labels)
 		if err != nil {
 			if a.mute_errors {
@@ -203,9 +205,9 @@ func (a *RedisAdapter) Stream(logstream chan *router.Message) {
 	multilineTag := false
 	for m := range logstream {
 		a.msg_counter += 1
-		msg_id := fmt.Sprintf("%s#%d", m.Container.ID[0:12], a.msg_counter)
 
-        if err := json.Unmarshal([]byte(m.Data)); err != nil {
+        var data map[string]interface{}
+        if err := json.Unmarshal([]byte(m.Data), &data); err != nil {
             if ok,_ := regexp.MatchString("^\\#\\#\\#\\#", m.Data); ok {
                 multilineTag = !multilineTag
                 continue
@@ -229,7 +231,7 @@ func (a *RedisAdapter) Stream(logstream chan *router.Message) {
             }
 		} else {
             sendData(dataBuffer)
-            dataBuffer = make(router.Message)
+            dataBuffer = nil
         }
 	}
     sendData(dataBuffer)

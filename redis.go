@@ -153,6 +153,9 @@ func (a *RedisAdapter) Stream(logstream chan *router.Message) {
 
 	var dataBuffer *router.Message
 	var sendData = func(m *router.Message) {
+	    if m == nil {
+	        return
+        }
 		msg_id := fmt.Sprintf("%s#%d", m.Container.ID[0:12], a.msg_counter)
 		js, err := createLogstashMessage(m, a.docker_host, a.use_v0, a.logstash_type, a.dedot_labels)
 		if err != nil {

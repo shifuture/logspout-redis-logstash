@@ -210,15 +210,7 @@ func (a *RedisAdapter) Stream(logstream chan *router.Message) {
 		a.msg_counter += 1
 
         var data map[string]interface{}
-        if err := json.Unmarshal([]byte(m.Data), &data); err != nil {
-            if ok,_ := regexp.MatchString("^\\#\\#\\#\\#", m.Data); ok {
-                multilineTag = !multilineTag
-                continue
-            }
-            if multilineTag {
-                dataBuffer.Data = dataBuffer.Data + "\n" + m.Data
-                continue
-            }
+        if err := json.Unmarshal([]byte(m.Data), &data); err != nil || data == nil {
             if ok,_ := regexp.MatchString("^(\\t+|\\s{2,})", m.Data); ok {
                 // multi line
                 if dataBuffer != nil {
@@ -238,6 +230,7 @@ func (a *RedisAdapter) Stream(logstream chan *router.Message) {
         }
 	}
     sendData(dataBuffer)
+    dataBuffer = nil
 }
 
 func errorf(format string, a ...interface{}) (err error) {

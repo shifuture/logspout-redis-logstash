@@ -153,7 +153,7 @@ func (a *RedisAdapter) Stream(logstream chan *router.Message) {
 
 	var dataBuffer *router.Message
 	var sendData = func(m *router.Message) {
-	    if m == nil {
+	    if m == nil || m.Data == "" {
 	        return
         }
 		msg_id := fmt.Sprintf("%s#%d", m.Container.ID[0:12], a.msg_counter)
@@ -205,7 +205,6 @@ func (a *RedisAdapter) Stream(logstream chan *router.Message) {
 		}
     }
 
-	multilineTag := false
 	for m := range logstream {
 		a.msg_counter += 1
 
